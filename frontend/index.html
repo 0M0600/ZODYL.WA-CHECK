@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+
+<html lang="fr">
+
+<head>
+
+<meta charset="utf-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+
+<title>WhatsAppSpam Check</title>
+
+<style>
+
+:root{
+
+  --bg:#f6f8f7;--card:#fff;--ink:#0b3d2e;--text:#1a1a1a;--muted:#666;
+
+  --head:#075e54;--green:#25d366;--green2:#1ebe5a;
+
+  --spam-bg:#fbb3b3;--spam:#b30000;--ban-bg:#1f2123;--ok-bg:#7fe09a;--ok:#0b6b3a;
+
+  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+
+  color-scheme:light;
+
+}
+
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+
+  --bg:#0c1512;--card:#13201b;--ink:#9cf0c3;--text:#e8f1ec;--muted:#9bb0a6;color-scheme:dark;}}
+
+:root[data-theme="dark"]{--bg:#0c1512;--card:#13201b;--ink:#9cf0c3;--text:#e8f1ec;--muted:#9bb0a6;color-scheme:dark;}
+
+*{box-sizing:border-box}
+
+html{scroll-behavior:smooth;scroll-padding-top:env(safe-area-inset-top,0px)}
+
+body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;overflow-x:hidden}
+
+/* lumières d’ambiance */
+
+.glow{position:fixed;border-radius:50%;filter:blur(90px);opacity:.35;pointer-events:none;z-index:0;animation:float 12s ease-in-out infinite}
+
+.g1{width:380px;height:380px;background:var(--green);top:-80px;right:-80px}
+
+.g2{width:320px;height:320px;background:#128c7e;bottom:-60px;left:-80px;animation-delay:-5s}
+
+@keyframes float{50%{transform:translate(40px,30px) scale(1.15)}}
+
+header{position:sticky;top:0;z-index:10;background:linear-gradient(120deg,#075e54,#0a7a6a,#075e54);background-size:200% 100%;animation:sweep 8s linear infinite;color:#fff}
+
+@keyframes sweep{to{background-position:200% 0}}
+
+.bar{max-width:1100px;margin:auto;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 20px;flex-wrap:wrap}
+
+.logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:1.25rem;line-height:1.05}
+
+.shield{width:44px;height:44px;filter:drop-shadow(0 0 8px var(--green));animation:pulse 2.4s ease-in-out infinite}
+
+nav{display:flex;gap:22px;flex-wrap:wrap}
+
+nav a{color:#fff;text-decoration:none;font-weight:700;position:relative}
+
+nav a::after{content:"";position:absolute;left:0;bottom:-4px;height:2px;width:0;background:var(--green);transition:width .3s}
+
+nav a:hover::after{width:100%}
+
+main{position:relative;z-index:1;max-width:1100px;margin:auto;padding:36px 20px 60px}
+
+h1{font-size:clamp(2rem,6vw,3.6rem);line-height:1.05;margin:0 0 16px;color:var(--ink);font-weight:800}
+
+.lead{font-size:1.15rem;max-width:760px;margin:0 0 24px}
+
+form{display:flex;gap:16px;flex-wrap:wrap}
+
+.field{flex:1 1 280px;display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid #d5dcd8;border-radius:14px;padding:0 16px;height:64px;box-shadow:0 2px 8px rgba(0,0,0,.08);transition:box-shadow .3s,border-color .3s}
+
+.field:focus-within{border-color:var(--green);box-shadow:0 0 0 4px rgba(37,211,102,.25),0 0 24px rgba(37,211,102,.45)}
+
+.flag{width:32px;height:32px;border-radius:50%;flex:none;background:linear-gradient(90deg,#1f3fa8 33%,#fff 33% 66%,#e33 66%);box-shadow:0 0 0 1px rgba(0,0,0,.1)}
+
+.field input{flex:1;border:0;outline:0;background:transparent;font:inherit;font-size:1.25rem;color:var(--text);min-width:0}
+
+.btn{flex:1 1 260px;height:64px;border:0;border-radius:14px;cursor:pointer;color:#fff;font:inherit;font-size:1.3rem;font-weight:800;background:linear-gradient(135deg,var(--green),var(--green2));position:relative;overflow:hidden;box-shadow:0 6px 20px rgba(37,211,102,.45);transition:transform .2s,box-shadow .3s}
+
+.btn:hover{transform:translateY(-2px);box-shadow:0 10px 30px rgba(37,211,102,.7)}
+
+.btn::after{content:"";position:absolute;top:0;left:-60%;width:40%;height:100%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.55),transparent);transform:skewX(-20deg);animation:shine 3s infinite}
+
+@keyframes shine{to{left:130%}}
+
+.btn svg{vertical-align:-4px;margin-right:8px}
+
+.note{text-align:right;font-size:.85rem;margin:12px 0 0}
+
+#result{margin-top:26px;display:none}
+
+#result.show{display:block}
+
+#result .tag{font-size:.8rem;color:var(--muted);margin:0 0 8px}
+
+#msg{color:var(--spam);font-weight:700;margin:10px 0 0;min-height:1.2em}
+
+h2{font-size:clamp(1.5rem,4vw,2.3rem);color:var(--ink);margin:48px 0 20px}
+
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px}
+
+.c{border-radius:18px;padding:22px 16px;text-align:center;border:2px solid transparent;position:relative;overflow:hidden;opacity:0;transform:translateY(30px);transition:opacity .7s,transform .7s,box-shadow .3s}
+
+.c.in{opacity:1;transform:none}
+
+.c:hover{transform:translateY(-6px) scale(1.02)}
+
+.c .ic{width:56px;height:56px;border-radius:50%;margin:0 auto 6px;display:grid;place-items:center;color:#fff;font-size:1.8rem;font-weight:800}
+
+.c h3{margin:0;font-size:1.3rem;line-height:1.25}
+
+.c h3 b{display:block;font-size:1.45rem}
+
+.c p{margin:10px 0 0;font-size:.95rem}
+
+.spam{background:var(--spam-bg);border-color:#e04848;color:var(--spam);animation:glowR 2.6s ease-in-out infinite}
+
+.spam .ic{background:#e22}
+
+.spam p{color:#400}
+
+.ban{background:var(--ban-bg);color:#fff;border-color:#000;animation:glowK 2.6s ease-in-out infinite}
+
+.ban .ic{background:#444;border:2px solid #aaa}
+
+.ok{background:var(--ok-bg);border-color:#2ecc71;color:var(--ok);animation:glowG 2.6s ease-in-out infinite}
+
+.ok .ic{background:#1fbf5a}
+
+.ok p{color:#063}
+
+@keyframes glowR{50%{box-shadow:0 0 28px rgba(230,50,50,.7)}}
+
+@keyframes glowK{50%{box-shadow:0 0 28px rgba(255,255,255,.3)}}
+
+@keyframes glowG{50%{box-shadow:0 0 28px rgba(37,211,102,.8)}}
+
+.gauge{width:150px;margin:10px auto 0;display:block}
+
+.gauge .bg{fill:none;stroke:rgba(0,0,0,.12);stroke-width:14}
+
+.gauge .fg{fill:none;stroke-width:14;stroke-linecap:round;stroke-dasharray:100;stroke-dashoffset:100;transition:stroke-dashoffset 1.6s cubic-bezier(.2,.8,.2,1)}
+
+.spam .fg{stroke:#d11}.ok .fg{stroke:#1fbf5a}
+
+.gauge text{font-weight:800;font-size:22px;text-anchor:middle;fill:currentColor}
+
+.score{font-weight:800;font-size:1.15rem;margin-top:6px}
+
+.pill{display:inline-block;margin-top:10px;padding:7px 18px;border-radius:10px;font-weight:700;font-size:.95rem;color:#fff}
+
+.pill.r{background:#b30000}.pill.g{background:#1fbf5a}.pill.k{background:#555}
+
+.ban .note2{background:#555;display:inline-block;padding:6px 16px;border-radius:10px;font-weight:700;font-size:.9rem;margin:10px 0}
+
+.ban small{display:block;color:#ddd}
+
+.feat{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-top:30px}
+
+.feat div{background:var(--card);border-radius:12px;padding:16px 20px;font-weight:700;display:flex;gap:12px;align-items:center;box-shadow:0 2px 10px rgba(0,0,0,.08);transition:transform .3s,box-shadow .3s}
+
+.feat div:hover{transform:translateY(-4px);box-shadow:0 0 22px rgba(37,211,102,.4)}
+
+.feat svg{flex:none;color:var(--ink)}
+
+footer{text-align:center;color:var(--muted);font-size:.85rem;padding:20px}
+
+@keyframes pulse{50%{transform:scale(1.1)}}
+
+.spin{display:inline-block;width:18px;height:18px;border:3px solid #fff5;border-top-color:#fff;border-radius:50%;animation:rot .7s linear infinite;vertical-align:-3px;margin-right:8px}
+
+@keyframes rot{to{transform:rotate(360deg)}}
+
+@media (max-width:640px){.note{text-align:left}nav{gap:14px;font-size:.9rem}.btn,.field{height:56px}}
+
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.c{opacity:1;transform:none}}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="glow g1"></div><div class="glow g2"></div>
+
+
+
+<header>
+
+  <div class="bar">
+
+    <div class="logo">
+
+      <svg class="shield" viewBox="0 0 48 48" aria-hidden="true"><path d="M24 3 6 9v14c0 11 8 18 18 22 10-4 18-11 18-22V9z" fill="#25d366"/><circle cx="24" cy="23" r="9" fill="none" stroke="#fff" stroke-width="3"/><path d="M17 33l2-6" stroke="#fff" stroke-width="3" stroke-linecap="round"/></svg>
+
+      <span>WhatsAppSpam<br>Check</span>
+
+    </div>
+
+    <nav>
+
+      <a href="#accueil">Accueil</a><a href="#verifier">Vérifier</a><a href="#historique">Historique</a><a href="#faq">FAQ</a><a href="#contact">Contact</a>
+
+    </nav>
+
+  </div>
+
+</header>
+
+
+
+<main id="accueil">
+
+  <h1>Vérifiez le statut d’un numéro WhatsApp</h1>
+
+  <p class="lead">Entrez un numéro pour vérifier s’il est actif, bloqué, ou signalé comme spam. Résultat instantané, fiable et sécurisé.</p>
+
+
+
+  <form id="f" autocomplete="off">
+
+    <label class="field" id="verifier"><span class="flag"></span>
+
+      <input id="num" type="tel" inputmode="tel" placeholder="+33 6 12 34 56 78" aria-label="Numéro de téléphone">
+
+    </label>
+
+    <button class="btn" id="go" type="submit">
+
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><circle cx="10" cy="10" r="6"/><path d="m15 15 6 6"/></svg>Vérifier le numéro
+
+    </button>
+
+  </form>
+
+  <p class="note">🔒 Données sécurisées • Conforme RGPD • 100% confidentiel</p>
+
+  <p id="msg" role="alert"></p>
+
+
+
+  <section id="result" aria-live="polite">
+
+    <p class="tag" id="tag"></p>
+
+    <div class="cards" id="slot"></div>
+
+  </section>
+
+
+
+  <h2 id="historique">Résultats possibles — 3 états détectés</h2>
+
+  <div class="cards" id="cards">
+
+    <article class="c spam" data-state="spam">
+
+      <div class="ic">!</div>
+
+      <h3>SPAM<b>Numéro signalé</b></h3>
+
+      <svg class="gauge" viewBox="0 0 100 60"><path class="bg" pathLength="100" d="M10 50A40 40 0 0 1 90 50"/><path class="fg" pathLength="100" data-v="85" d="M10 50A40 40 0 0 1 90 50"/><text x="50" y="52">85%</text></svg>
+
+      <div class="score">Score de spam : 85/100</div>
+
+      <p>Signalements élevés • Risque élevé</p>
+
+      <span class="pill r">Bloquer ce contact</span>
+
+    </article>
+
+
+
+    <article class="c ban" data-state="ban">
+
+      <div class="ic">⊘</div>
+
+      <h3>BAN<b>Compte banni</b></h3>
+
+      <p><small>Ce compte a été banni par WhatsApp</small></p>
+
+      <span class="note2">Statut : Interdit • Définitif</span>
+
+      <p>Impossible d’envoyer des messages</p>
+
+    </article>
+
+
+
+    <article class="c ok" data-state="ok">
+
+      <div class="ic">✓</div>
+
+      <h3>VIVANT<b>Compte actif</b></h3>
+
+      <svg class="gauge" viewBox="0 0 100 60"><path class="bg" pathLength="100" d="M10 50A40 40 0 0 1 90 50"/><path class="fg" pathLength="100" data-v="15" d="M10 50A40 40 0 0 1 90 50"/><text x="50" y="52">15%</text></svg>
+
+      <div class="score">Score de spam : 15/100</div>
+
+      <p>Aucun signalement • Compte sain</p>
+
+      <span class="pill g">🛡 Risque Faible</span>
+
+      <p style="font-size:.8rem;opacity:.8">Résultats à titre informatif</p>
+
+    </article>
+
+  </div>
+
+
+
+  <div class="feat" id="faq">
+
+    <div><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 4 5v7c0 5 3.5 8 8 10 4.5-2 8-5 8-10V5z"/></svg>Analyse rapide</div>
+
+    <div><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>Confidentiel et sécurisé</div>
+
+    <div><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Résultat en moins de 10s</div>
+
+  </div>
+
+</main>
+
+<footer id="contact">WhatsAppSpam Check — Résultats à titre informatif</footer>
+
+
+
+<script>
+
+(function(){
+
+  var cards=document.querySelectorAll('#cards .c');
+
+  function animate(root){
+
+    root.querySelectorAll('.fg').forEach(function(p){
+
+      p.style.strokeDashoffset=100;
+
+      requestAnimationFrame(function(){setTimeout(function(){p.style.strokeDashoffset=100-p.dataset.v;},50);});
+
+    });
+
+  }
+
+  // apparition au scroll + jauges animées
+
+  var io=new IntersectionObserver(function(es){es.forEach(function(e){
+
+    if(e.isIntersecting){e.target.classList.add('in');animate(e.target);io.unobserve(e.target);}
+
+  });},{threshold:.25});
+
+  cards.forEach(function(c,i){c.style.transitionDelay=(i*120)+'ms';io.observe(c);});
+
+
+
+  var f=document.getElementById('f'),num=document.getElementById('num'),go=document.getElementById('go'),
+
+      msg=document.getElementById('msg'),res=document.getElementById('result'),slot=document.getElementById('slot'),tag=document.getElementById('tag');
+
+  var label=go.innerHTML;
+
+  var DEMO=true; // true : affiche un résultat de démonstration si /check ne répond pas
+
+
+
+  function show(state,demo){
+
+    var src=document.querySelector('#cards .c[data-state="'+state+'"]');
+
+    if(!src)return;
+
+    var c=src.cloneNode(true);c.classList.add('in');c.style.transitionDelay='0ms';
+
+    slot.innerHTML='';slot.appendChild(c);
+
+    tag.textContent=demo?'Démonstration : données simulées, backend non connecté.':'';
+
+    res.classList.add('show');
+
+    animate(c);
+
+    res.scrollIntoView({behavior:'smooth',block:'center'});
+
+  }
+
+  function map(s){return s==='banned'?'ban':s==='spam'?'spam':s==='active'?'ok':null;}
+
+
+
+  f.addEventListener('submit',function(e){
+
+    e.preventDefault();msg.textContent='';
+
+    var v=num.value.replace(/[\s.-]/g,'');
+
+    if(!/^\+\d{8,15}$/.test(v)){msg.textContent='Format invalide : utilisez le format international, par ex. +33 6 12 34 56 78';return;}
+
+    go.disabled=true;go.innerHTML='<span class="spin"></span>Analyse…';
+
+    var done=function(){go.disabled=false;go.innerHTML=label;};
+
+    fetch('/check',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({number:v})})
+
+      .then(function(r){if(!r.ok)throw 0;return r.json();})
+
+      .then(function(d){var s=map(d.status);if(!s)throw 0;show(s,false);})
+
+      .catch(function(){
+
+        if(DEMO){var k=['ok','spam','ban'];show(k[Math.floor(Math.random()*3)],true);}
+
+        else msg.textContent='Service indisponible, réessayez plus tard.';
+
+      })
+
+      .then(done);
+
+  });
+
+})();
+
+</script>
+
+</body>
+
+</html>
+
+
